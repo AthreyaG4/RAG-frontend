@@ -9,12 +9,18 @@ import { Toaster } from "./components/ui/sonner.jsx";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Index />,
-    loader: indexLoader,
+    errorElement: <NotFound />,
+    children: [
+      {
+        index: true,
+        element: <Index />,
+        loader: indexLoader,
+      },
+      { path: "login", element: <Login /> },
+      { path: "signup", element: <Signup /> },
+      { path: "*", element: <NotFound /> },
+    ],
   },
-  { path: "/login", element: <Login /> },
-  { path: "/signup", element: <Signup /> },
-  { path: "*", element: <NotFound /> },
 ]);
 
 function App() {

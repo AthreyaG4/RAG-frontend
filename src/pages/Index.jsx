@@ -2,6 +2,7 @@ import { useLoaderData, redirect, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import { useProjects } from "../hooks/useProjects.js";
 import { useDocuments } from "../hooks/useDocuments.js";
+import { useTask } from "../hooks/useTask.js";
 import { ProjectSidebar } from "../components/ProjectSidebar.jsx";
 import { UploadKnowledgeBase } from "../components/UploadKnowledgeBase";
 import { UploadModal } from "../components/UploadModal";
@@ -10,11 +11,11 @@ import { EmptyState } from "../components/EmptyState";
 import { NewProjectModal } from "../components/NewProjectModal";
 import { ProcessingTimeline } from "../components/ProcessingTimeline";
 import { ViewKnowledgeBaseModal } from "../components/ViewKnowledgeBaseModal.jsx";
+import { DocumentUploadStatus } from "../components/DocumentUploadStatus.jsx";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { UserMenu } from "../components/UserMenu";
 import { Button } from "../components/ui/button";
-import { PanelLeft } from "lucide-react";
-import { Database } from "lucide-react";
+import { PanelLeft, Database } from "lucide-react";
 
 export default function Index() {
   const token = localStorage.getItem("token");
@@ -43,6 +44,8 @@ export default function Index() {
     selectedProjectId,
   );
 
+  const { task, createTask } = useTask(token, selectedProjectId);
+
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isViewKnowledgeBaseOpen, setIsViewKnowledgeBaseOpen] = useState(false);
@@ -66,29 +69,115 @@ export default function Index() {
     setSelectedProjectId((prev) => (prev === projectId ? null : prev));
   };
 
-  // api call
-  const handleUploadComplete = () => {
+  const handleUpload = async (files) => {
     if (!selectedProjectId) {
       setIsUploadModalOpen(false);
       return;
     }
+    await createDocuments(files);
+
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === selectedProjectId
+          ? {
+              ...p,
+              status: "uploaded",
+            }
+          : p,
+      ),
+    );
+    setIsUploadModalOpen(false);
+  };
+
+  const handleUploadMore = () => {
+    setIsUploadModalOpen(true);
+  };
+
+  const handleStartProcessing = async () => {
+    if (!selectedProjectId) return;
+
+    // Create the task and start processing
+    await createTask(); // This starts polling automatically
 
     setProjects((prev) =>
       prev.map((p) =>
         p.id === selectedProjectId ? { ...p, status: "processing" } : p,
       ),
     );
-    setIsUploadModalOpen(false);
   };
 
-  // api call
   const handleProcessingComplete = () => {
     if (!selectedProjectId) return;
 
     setProjects((prev) =>
       prev.map((p) =>
-        p.id === selectedProjectId ? { ...p, status: "processed" } : p,
+        p.id === selectedProjectId
+          ? {
+              ...p,
+              status: "ready",
+            }
+          : p,
       ),
+    );
+  };
+
+  useEffect(() => {
+    if (
+      task?.status === "SUCCESS" &&
+      selectedProject?.status === "processing"
+    ) {
+      handleProcessingComplete();
+    }
+  }, [task?.status]);
+
+  const renderMainContent = () => {
+    if (!selectedProject) {
+      return <EmptyState onNewProject={() => setIsNewProjectModalOpen(true)} />;
+    }
+
+    if (selectedProject.status == "ready") {
+      return (
+        <ChatInterface
+          key={selectedProject.id}
+          projectId={selectedProject.id}
+          projectName={selectedProject.name}
+          isSidebarOpen={isSidebarOpen}
+        />
+      );
+    }
+
+    if (selectedProject.status == "processing") {
+      return (
+        <ProcessingTimeline
+          projectName={selectedProject.name}
+          isSidebarOpen={isSidebarOpen}
+          onComplete={handleProcessingComplete}
+          task={task}
+        />
+      );
+    }
+    ``;
+
+    if (selectedProject.status == "uploaded") {
+      return (
+        <DocumentUploadStatus
+          documents={documents}
+          projectName={selectedProject.name}
+          isSidebarOpen={isSidebarOpen}
+          onUploadMore={handleUploadMore}
+          onStartProcessing={handleStartProcessing}
+          deleteDocument={deleteDocument}
+          onAllFilesRemoved={() => {}} // write this
+        />
+      );
+    }
+
+    return (
+      <UploadKnowledgeBase
+        projectName={selectedProject.name}
+        onUploadClick={() => setIsUploadModalOpen(true)}
+        isSidebarOpen={isSidebarOpen}
+      />
     );
   };
 
@@ -108,7 +197,7 @@ export default function Index() {
 
       <main className="flex flex-1 flex-col overflow-hidden">
         <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-          {selectedProject?.status == "processed" && (
+          {selectedProject?.status == "ready" && (
             <Button
               variant="outline"
               size="sm"
@@ -132,65 +221,35 @@ export default function Index() {
             <PanelLeft className="h-5 w-5" />
           </Button>
         )}
-        {selectedProject ? (
-          selectedProject.status == "processed" ? (
-            <ChatInterface
-              key={selectedProject.id}
-              projectId={selectedProject.id}
-              projectName={selectedProject.name}
-              isSidebarOpen={isSidebarOpen}
-            />
-          ) : selectedProject.status == "processing" ? (
-            <ProcessingTimeline
-              projectName={selectedProject.name}
-              isSidebarOpen={isSidebarOpen}
-              onComplete={handleProcessingComplete}
-            />
-          ) : (
-            <UploadKnowledgeBase
-              projectName={selectedProject.name}
-              onUploadClick={() => setIsUploadModalOpen(true)}
-              isSidebarOpen={isSidebarOpen}
-            />
-          )
-        ) : (
-          <EmptyState onNewProject={() => setIsNewProjectModalOpen(true)} />
-        )}
+        {renderMainContent()}
       </main>
 
-      {selectedProject && (
-        <>
-          <UploadModal
-            isOpen={isUploadModalOpen}
-            onClose={() => setIsUploadModalOpen(false)}
-            onUploadComplete={handleUploadComplete}
-            createDocuments={createDocuments}
-          />
-
-          <ViewKnowledgeBaseModal
-            documents={documents}
-            deleteDocument={deleteDocument}
-            isOpen={isViewKnowledgeBaseOpen}
-            onClose={() => setIsViewKnowledgeBaseOpen(false)}
-            onKnowledgeBaseEmpty={() => {
-              if (selectedProjectId) {
-                setProjects((prev) =>
-                  prev.map((p) =>
-                    p.id === selectedProjectId
-                      ? { ...p, status: "created" }
-                      : p,
-                  ),
-                );
-              }
-            }}
-          />
-        </>
-      )}
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={handleUpload}
+      />
 
       <NewProjectModal
         isOpen={isNewProjectModalOpen}
         onClose={() => setIsNewProjectModalOpen(false)}
         onCreateProject={handleCreateProject}
+      />
+
+      <ViewKnowledgeBaseModal
+        documents={documents}
+        deleteDocument={deleteDocument}
+        isOpen={isViewKnowledgeBaseOpen}
+        onClose={() => setIsViewKnowledgeBaseOpen(false)}
+        onKnowledgeBaseEmpty={() => {
+          if (selectedProjectId) {
+            setProjects((prev) =>
+              prev.map((p) =>
+                p.id === selectedProjectId ? { ...p, status: "created" } : p,
+              ),
+            );
+          }
+        }}
       />
     </div>
   );

@@ -1,50 +1,57 @@
-import { useEffect, useState } from "react";
 import { Check, Loader2, Circle } from "lucide-react";
 import { cn } from "../lib/utils";
 
 const steps = [
-  { id: "upload", label: "Uploading documents", duration: 1500 },
-  { id: "chunk", label: "Chunking documents", duration: 2000 },
-  { id: "embed", label: "Embedding documents", duration: 2500 },
-  { id: "store", label: "Storing in vector DB", duration: 1800 },
-  { id: "complete", label: "Database created", duration: 1000 },
+  { id: "chunking", label: "Chunking documents" },
+  { id: "embedding", label: "Embedding documents" },
+  { id: "storing", label: "Storing in vector DB" },
 ];
 
 export function ProcessingTimeline({
   projectName,
   isSidebarOpen = true,
-  onComplete,
+  task, // Pass task from useTask hook
 }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [stepProgress, setStepProgress] = useState(0);
-
-  useEffect(() => {
-    if (currentStep >= steps.length) {
-      const timer = setTimeout(onComplete, 500);
-      return () => clearTimeout(timer);
+  // Helper to get step status
+  const getStepStatus = (stepId) => {
+    if (!task || task.status === "PENDING") {
+      return {
+        isCompleted: false,
+        isActive: false,
+        isPending: true,
+        progress: 0,
+      };
     }
 
-    const step = steps[currentStep];
-    const interval = 50;
-    const increment = (interval / step.duration) * 100;
+    const currentStageIndex = steps.findIndex((s) => s.id === task.stage);
+    const stepIndex = steps.findIndex((s) => s.id === stepId);
 
-    const progressTimer = setInterval(() => {
-      setStepProgress((prev) => {
-        const next = prev + increment;
-        if (next >= 100) {
-          clearInterval(progressTimer);
-          setTimeout(() => {
-            setCurrentStep((s) => s + 1);
-            setStepProgress(0);
-          }, 200);
-          return 100;
-        }
-        return next;
-      });
-    }, interval);
-
-    return () => clearInterval(progressTimer);
-  }, [currentStep, onComplete]);
+    if (stepIndex < currentStageIndex) {
+      // This step is completed
+      return {
+        isCompleted: true,
+        isActive: false,
+        isPending: false,
+        progress: 100,
+      };
+    } else if (stepIndex === currentStageIndex) {
+      // This is the current active step
+      return {
+        isCompleted: false,
+        isActive: true,
+        isPending: false,
+        progress: (task.progress || 0) * 100,
+      };
+    } else {
+      // This step hasn't started yet
+      return {
+        isCompleted: false,
+        isActive: false,
+        isPending: true,
+        progress: 0,
+      };
+    }
+  };
 
   return (
     <div className="animate-fade-in flex flex-1 flex-col">
@@ -60,9 +67,8 @@ export function ProcessingTimeline({
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="w-full max-w-md space-y-2">
           {steps.map((step, index) => {
-            const isCompleted = index < currentStep;
-            const isActive = index === currentStep;
-            const isPending = index > currentStep;
+            const { isCompleted, isActive, isPending, progress } =
+              getStepStatus(step.id);
 
             return (
               <div key={step.id} className="relative">
@@ -109,8 +115,8 @@ export function ProcessingTimeline({
                     {isActive && (
                       <div className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full">
                         <div
-                          className="bg-primary h-full rounded-full transition-all duration-100 ease-linear"
-                          style={{ width: `${stepProgress}%` }}
+                          className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${progress}%` }}
                         />
                       </div>
                     )}

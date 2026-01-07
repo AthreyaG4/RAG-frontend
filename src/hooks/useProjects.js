@@ -6,22 +6,40 @@ export function useProjects(token) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const fetchProjects = async () => {
+    try {
+      const response = await api.getProjects(token);
+      setProjects(response);
+      setError(null);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    if (!token) return;
+    fetchProjects();
+  }, [token]);
+
+  // Poll only when there are processing projects
   useEffect(() => {
     if (!token) return;
 
-    async function fetchProjects() {
-      try {
-        // console.log("Fetching Projects.....");
-        const response = await api.getProjects(token);
-        setProjects(response);
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProjects();
-  }, [token]);
+    const hasProcessingProjects = projects.some(
+      (p) => p.status === "processing",
+    );
+
+    if (!hasProcessingProjects) return;
+
+    const interval = setInterval(() => {
+      fetchProjects();
+    }, 3000); // Check every 3 seconds when processing
+
+    return () => clearInterval(interval);
+  }, [token, projects]);
 
   async function createProject(name) {
     const createdProject = await api.createProject(token, name);

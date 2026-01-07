@@ -20,7 +20,7 @@ export function useMessages(token, project_id) {
       }
     }
     fetchMessages();
-  }, [token]);
+  }, [token, project_id]);
 
   async function createMessage(content) {
     const optimisticUserMessage = {

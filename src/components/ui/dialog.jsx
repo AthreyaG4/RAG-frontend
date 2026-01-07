@@ -53,6 +53,16 @@ const DialogHeader = ({ className, ...props }) => (
   />
 );
 
+const DialogFooter = ({ className, ...props }) => (
+  <div
+    className={cn(
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      className,
+    )}
+    {...props}
+  />
+);
+
 const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
@@ -65,6 +75,15 @@ const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
 ));
 DialogTitle.displayName = "DialogTitle";
 
+const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn("text-muted-foreground text-sm", className)}
+    {...props}
+  />
+));
+DialogDescription.displayName = "DialogDescription";
+
 export {
   Dialog,
   DialogPortal,
@@ -73,5 +92,7 @@ export {
   DialogTrigger,
   DialogContent,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
+  DialogDescription,
 };

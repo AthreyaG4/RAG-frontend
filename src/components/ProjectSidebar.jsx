@@ -146,7 +146,7 @@ export function ProjectSidebar({
               </button>
 
               {editingId !== project.id ? (
-                project.status == "processed" ? (
+                project.status == "ready" ? (
                   <span className="bg-primary h-2 w-2 shrink-0 rounded-full" />
                 ) : project.status == "processing" ? (
                   <span className="h-2 w-2 shrink-0 rounded-full bg-yellow-600" />

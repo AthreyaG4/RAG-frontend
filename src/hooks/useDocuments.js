@@ -17,7 +17,6 @@ export function useDocuments(token, project_id) {
       try {
         // console.log(`Fetching Documents for project: ${project_id}.....`);
         const response = await api.getDocuments(token, project_id);
-        console.log(response);
         setDocuments(response);
       } catch (err) {
         setError(err);
@@ -26,7 +25,7 @@ export function useDocuments(token, project_id) {
       }
     }
     fetchDocuments();
-  }, [token]);
+  }, [token, project_id]);
 
   async function createDocuments(files) {
     // console.log(`Creating Documents for project: ${project_id}.....`);

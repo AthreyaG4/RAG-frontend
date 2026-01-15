@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
+import { WarmingIndicator } from "../components/WarmingIndicator";
 
 export function DocumentUploadStatus({
   documents,
@@ -27,11 +28,14 @@ export function DocumentUploadStatus({
   deleteDocument,
   onAllFilesRemoved,
 }) {
+  const [systemHealth, setSystemHealth] = useState({});
+  const systemReady =
+    systemHealth.model == "ready" && systemHealth.worker == "ready";
   const uploadedCount =
     documents?.filter((doc) => doc.status === "uploaded").length || 0;
   const failedCount =
     documents?.filter((doc) => doc.status === "failed").length || 0;
-  const hasuploadedfulUploads = uploadedCount > 0;
+  const hasSuccessfulUploads = uploadedCount > 0;
 
   const [documentToRemove, setDocumentToRemove] = useState(null);
 
@@ -145,6 +149,15 @@ export function DocumentUploadStatus({
             </div>
           </div>
 
+          {/* Warming Indicator */}
+          <WarmingIndicator
+            showModel={true}
+            showWorkers={true}
+            systemHealth={systemHealth}
+            onHealthChange={setSystemHealth}
+            className="mb-6"
+          />
+
           {/* Actions */}
           <div className="flex items-center justify-center gap-3">
             <Button
@@ -156,13 +169,17 @@ export function DocumentUploadStatus({
               Add More
             </Button>
 
-            {hasuploadedfulUploads && (
+            {hasSuccessfulUploads && (
               <Button
                 onClick={onStartProcessing}
-                className="bg-primary hover:bg-primary/90 rounded-xl"
+                disabled={!systemReady}
+                className={cn(
+                  "bg-primary hover:bg-primary/90 rounded-xl",
+                  !systemReady && "cursor-not-allowed opacity-50",
+                )}
               >
                 <Play className="h-4 w-4" />
-                Start Processing
+                {systemReady ? "Start Processing" : "Waiting..."}
               </Button>
             )}
           </div>

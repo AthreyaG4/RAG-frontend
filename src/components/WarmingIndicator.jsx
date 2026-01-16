@@ -4,50 +4,11 @@ import { cn } from "../lib/utils";
 
 export function WarmingIndicator({
   showModel = true,
-  showWorkers = false,
   systemHealth,
-  onHealthChange,
   className,
 }) {
-  // Simulate warming up times
-  useEffect(() => {
-    if (
-      systemHealth.model === "ready" &&
-      (!showWorkers || systemHealth.worker === "ready")
-    ) {
-      return; // Already ready
-    }
-
-    // Model warms up in 2-4 seconds
-    const modelTimer = setTimeout(
-      () => {
-        if (systemHealth.model !== "ready") {
-          onHealthChange?.((prev) => ({ ...prev, model: "ready" }));
-        }
-      },
-      2000 + Math.random() * 2000,
-    );
-
-    // Workers warm up in 3-5 seconds (only if showing workers)
-    let workersTimer;
-    if (showWorkers && systemHealth.worker !== "ready") {
-      workersTimer = setTimeout(
-        () => {
-          onHealthChange?.((prev) => ({ ...prev, worker: "ready" }));
-        },
-        3000 + Math.random() * 2000,
-      );
-    }
-
-    return () => {
-      clearTimeout(modelTimer);
-      if (workersTimer) clearTimeout(workersTimer);
-    };
-  }, []); // Only run once on mount
-
-  const isModelReady = systemHealth.model === "ready";
-  const isWorkerReady = systemHealth.worker === "ready";
-  const isAllReady = showWorkers ? isModelReady && isWorkerReady : isModelReady;
+  
+  const isModelReady = systemHealth ? systemHealth.services.gpu_service == "healthy" : false;
 
   return (
     <div
@@ -64,10 +25,10 @@ export function WarmingIndicator({
         <div
           className={cn(
             "flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-500",
-            isAllReady ? "bg-green-500/20" : "bg-primary/20 animate-pulse",
+            isModelReady ? "bg-green-500/20" : "bg-primary/20 animate-pulse",
           )}
         >
-          {isAllReady ? (
+          {isModelReady ? (
             <Sparkles className="h-4 w-4 text-green-500" />
           ) : (
             <Loader2 className="text-primary h-4 w-4 animate-spin" />
@@ -76,12 +37,12 @@ export function WarmingIndicator({
         <span
           className={cn(
             "text-sm font-medium transition-colors duration-300",
-            isAllReady
+            isModelReady
               ? "text-green-600 dark:text-green-400"
               : "text-foreground",
           )}
         >
-          {isAllReady ? "System Ready" : "Initializing..."}
+          {isModelReady ? "System Ready" : "Initializing..."}
         </span>
       </div>
 
@@ -94,16 +55,6 @@ export function WarmingIndicator({
             label="Model Warming Up"
             readyLabel="Model Ready"
             isReady={isModelReady}
-          />
-        )}
-
-        {/* Workers Status */}
-        {showWorkers && (
-          <WarmingItem
-            icon={Server}
-            label="Workers Waking Up"
-            readyLabel="Workers Ready"
-            isReady={isWorkerReady}
           />
         )}
       </div>

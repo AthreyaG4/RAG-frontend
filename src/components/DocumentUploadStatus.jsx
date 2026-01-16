@@ -27,10 +27,9 @@ export function DocumentUploadStatus({
   onStartProcessing,
   deleteDocument,
   onAllFilesRemoved,
+  systemHealth,
 }) {
-  const [systemHealth, setSystemHealth] = useState({});
-  const systemReady =
-    systemHealth.model == "ready" && systemHealth.worker == "ready";
+  const modelReady = systemHealth ? systemHealth.services.gpu_service == "healthy" : false;
   const uploadedCount =
     documents?.filter((doc) => doc.status === "uploaded").length || 0;
   const failedCount =
@@ -154,7 +153,6 @@ export function DocumentUploadStatus({
             showModel={true}
             showWorkers={true}
             systemHealth={systemHealth}
-            onHealthChange={setSystemHealth}
             className="mb-6"
           />
 
@@ -172,14 +170,14 @@ export function DocumentUploadStatus({
             {hasSuccessfulUploads && (
               <Button
                 onClick={onStartProcessing}
-                disabled={!systemReady}
+                disabled={!modelReady}
                 className={cn(
                   "bg-primary hover:bg-primary/90 rounded-xl",
-                  !systemReady && "cursor-not-allowed opacity-50",
+                  !modelReady && "cursor-not-allowed opacity-50",
                 )}
               >
                 <Play className="h-4 w-4" />
-                {systemReady ? "Start Processing" : "Waiting..."}
+                {modelReady ? "Start Processing" : "Waiting..."}
               </Button>
             )}
           </div>

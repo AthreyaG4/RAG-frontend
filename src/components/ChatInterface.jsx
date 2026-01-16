@@ -11,15 +11,17 @@ export function ChatInterface({
   projectId,
   projectName,
   isSidebarOpen = true,
+  systemHealth,
 }) {
   const token = localStorage.getItem("token");
   const { messages, loading, createMessage } = useMessages(token, projectId);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeCitation, setActiveCitation] = useState(null);
-  const [modelReady, setModelReady] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  const modelReady = systemHealth ? systemHealth.services.gpu_service == "healthy" : false;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

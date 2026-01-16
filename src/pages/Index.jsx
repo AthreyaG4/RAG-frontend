@@ -1,5 +1,6 @@
 import { useLoaderData, redirect, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
+import { useHealth } from "../hooks/useHealth.js";
 import { useProjects } from "../hooks/useProjects.js";
 import { useDocuments } from "../hooks/useDocuments.js";
 import { useProgress } from "../hooks/useProgress.js";
@@ -19,6 +20,7 @@ import { PanelLeft, Database } from "lucide-react";
 
 export default function Index() {
   const token = localStorage.getItem("token");
+  const { health : systemHealth } = useHealth();
   const {
     projects,
     setProjects,
@@ -120,6 +122,7 @@ export default function Index() {
           projectId={selectedProject.id}
           projectName={selectedProject.name}
           isSidebarOpen={isSidebarOpen}
+          systemHealth={systemHealth}
         />
       );
     }
@@ -143,7 +146,16 @@ export default function Index() {
           onUploadMore={handleUploadMore}
           onStartProcessing={handleStartProcessing}
           deleteDocument={deleteDocument}
-          onAllFilesRemoved={() => {}} // write this
+          onAllFilesRemoved={() => {
+            if (selectedProjectId) {
+              setProjects((prev) =>
+                prev.map((p) =>
+                  p.id === selectedProjectId ? { ...p, status: "created" } : p,
+                ),
+              );
+            }
+          }}
+          systemHealth={systemHealth}
         />
       );
     }
